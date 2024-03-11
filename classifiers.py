@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import optimize
 
+
 class KernelSVC:
     
     def __init__(self, C, kernel, epsilon = 1e-3):
@@ -77,7 +78,19 @@ class KernelSVC:
         """ Predict y values in {-1, 1} """
         d = self.separating_function(X)
         return 2 * (d+self.b> 0) - 1
-    
+
+# class KernelSVC_SMO:
+#     def __init__(self, C, kernel, epsilon = 1e-3):
+#         self.type = 'non-linear'
+#         self.C = C                               
+#         self.kernel = kernel        
+#         self.alpha = None
+#         self.support = None
+#         self.epsilon = epsilon
+#         self.norm_f = None
+
+#     def fit(self, X, y):
+
 
 
 class MulticlassKernelSVC:
@@ -97,7 +110,7 @@ class MulticlassKernelSVC:
             num_c = len(y_c_idxs)
             y_nc_idxs = np.where(y_bin == -1)[0]
             # get the same number of samples for each class
-            y_nc = np.random.choice(y_nc_idxs, num_c, replace=False)
+            y_nc = np.random.choice(y_nc_idxs, 5*num_c, replace=False)
             y_bin = y_bin[np.union1d(y_c_idxs, y_nc)]
             X_bin = X[np.union1d(y_c_idxs, y_nc)]
             model = KernelSVC(self.C, self.kernel, self.epsilon)
@@ -109,4 +122,36 @@ class MulticlassKernelSVC:
         pred = np.zeros((X.shape[0], len(self.classes)))
         for i, model in enumerate(self.models):
             pred[:, i] = model.separating_function(X) + model.b
+        return self.classes[np.argmax(pred, axis=1)]
+
+class OneVsOneKernelSVC:
+    def __init__(self, C, kernel, epsilon = 1e-3):
+        self.C = C
+        self.kernel = kernel
+        self.epsilon = epsilon
+        self.models = []
+        self.classes = []
+
+    def fit(self, X, y):
+        self.classes = np.unique(y)
+        for i, c1 in enumerate(self.classes):
+            self.models.append([])
+            for j, c2 in enumerate(self.classes[i+1:]):
+                y_bin_idxs = np.where((y == c1) | (y == c2))[0]
+                y_bin = 2*(y[y_bin_idxs] == c1)-1
+                X_bin = X[(y == c1) | (y == c2)]
+                model = KernelSVC(self.C, self.kernel, self.epsilon)
+                model.fit(X_bin, y_bin)
+                self.models[i].append((c1,c2,model))
+    
+    def predict(self, X):
+        pred = np.zeros((X.shape[0], len(self.classes)))
+        for i, models in enumerate(self.models):
+            for c1,c2,model in models:
+                pred_ = model.predict(X)
+                for k, p in enumerate(pred_):
+                    if p == 1:
+                        pred[k,c1] += 1
+                    else:
+                        pred[k,c2] += 1
         return self.classes[np.argmax(pred, axis=1)]
