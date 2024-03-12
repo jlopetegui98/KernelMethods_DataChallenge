@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from scipy.ndimage import rotate
 
 def flip_augmentation(images, labels, aug_ratio = 0.2):
     """
@@ -15,51 +16,94 @@ def flip_augmentation(images, labels, aug_ratio = 0.2):
         augmented_labels: labels after augmentation
     """
 
-    labels_ = np.unique(labels)
     augmented_images = []
     augmented_labels = []
 
-    for label in labels_:
+    for label in set(labels):
         idx_label = np.where(labels == label)[0]
-        num_aug = int(len(idx_label)*aug_ratio)
-        idx_aug = random.sample(list(idx_label), num_aug)
+        idx_to_augment = random.sample(list(idx_label), int(len(idx_label)*aug_ratio), replace=False)
 
-        for idx in idx_aug:
+        for idx in idx_to_augment:
             image = images[idx]
 
             image = np.reshape(image, (3, 32,32))
-
-            red_channel = image[0]
-            green_channel = image[1]
-            blue_channel = image[2]
-
-            new_image = np.dstack((red_channel, green_channel, blue_channel))
+            new_image = np.dstack((image[0], image[1], image[2]))
 
             new_image = np.fliplr(new_image)
 
-            red_chanel = new_image[:,:,0]
-            green_chanel = new_image[:,:,1]
-            blue_chanel = new_image[:,:,2]
-
-            new_image = np.array([red_chanel,green_chanel,blue_chanel])
-
-            aufmented_images.append(new_image)
+            new_image = np.array([new_image[:,:,0], new_image[:,:,1], new_image[:,:,2]])
+            new_image = new_image.flatten()
+            augmented_images.append(new_image)
             augmented_labels.append(label)
     
-    augmented_images = np.array(augmented_images)
-    augmented_labels = np.array(augmented_labels)
-    perm = np.random.permutation(len(aufmented_images))
+    #To not append in the same order
+    ids = np.random.permutation(len(augmented_labels))
+    augmented_images = np.array(augmented_images)[ids]
+    augmented_labels = np.array(augmented_labels)[ids]
 
-    augmented_images = augmented_images[perm]
-    augmented_labels = augmented_labels[perm]
-
-    augmented_images = np.append(images, augmented_images)
-    augmented_labels = np.append(labels, augmented_labels)
-
-    perm = np.random.permutation(len(aufmented_images))
-
-    augmented_images = augmented_images[perm]
-    augmented_labels = augmented_labels[perm]
+    #To not have images and its augmented versions concatenate
+    final_images = np.concatenate((images, augmented_images), axis = 0)
+    final_labels = np.concatenate((labels, augmented_images), axis=0)
+    ids = np.random.permutation(len(final_labels))
+    final_images = final_images[ids]
+    final_labels = final_labels[ids]
     
-    return aufmented_images, augmented_labels
+    return final_images, final_labels
 
+
+def rotate_dataset(images, labels, n_rotations = 1, ratio=0.2, rotate_angle=1):
+    '''
+    Method to augment the dataset size by rotating some images (randomly chosen)
+    in the dataset. We take a ratio*100 percent of images for each label and
+    rotate them.
+
+    inputs:
+        images: images in the dataset
+        labels: labels of the images
+        n_rotations: number of rotations per image randomly chosen
+        ratio: ratio of images to rotate per label
+        rotate_angle: angle to rotate
+
+    output:
+        final_images: images after augmentation
+        final_labels: labels after augmentation
+    '''
+
+    augmented_images = []
+    augmented_labels = []
+    for i in range(n_rotations):
+        for label in set(labels):
+            #Get the index where label is
+            idx_label = np.where(labels == label)[0]
+            #Choose randomly 20% of the data with y=label 
+            idx_to_augment = random.sample(list(idx_label), int(len(idx_label)*ratio), replace=False)
+
+            X_to_augment = images[idx_to_augment]
+            
+            for id in idx_to_augment:
+                image = images[id]
+                image = np.reshape(image, (3, 32,32))
+                x_aux = np.dstack((image[0], image[1], image[2]))
+
+                angle = np.random.randint(-rotate_angle, rotate_angle)
+                new_image = rotate(x_aux, angle, reshape=False, mode = 'nearest')
+
+                new_image = np.array([new_image[:,:,0], new_image[:,:,1], new_image[:,:,2]])
+                new_image = new_image.flatten()
+                augmented_images.append(new_image)
+                augmented_labels.append(label)
+
+    #To not append in the same order
+    ids = np.random.permutation(len(augmented_labels))
+    augmented_images = np.array(augmented_images)[ids]
+    augmented_labels = np.array(augmented_labels)[ids]
+
+    #To not have images and its augmented versions concatenate
+    final_images = np.concatenate((images, augmented_images), axis = 0)
+    final_labels = np.concatenate((labels, augmented_images), axis=0)
+    ids = np.random.permutation(len(final_labels))
+    final_images = final_images[ids]
+    final_labels = final_labels[ids]
+
+
+    return final_images, final_labels
