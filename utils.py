@@ -1,6 +1,7 @@
 import random
 import numpy as np
 from scipy.ndimage import rotate
+from skimage.feature import hog
 
 def flip_augmentation(images, labels, aug_ratio = 0.2):
     """
@@ -21,7 +22,7 @@ def flip_augmentation(images, labels, aug_ratio = 0.2):
 
     for label in set(labels):
         idx_label = np.where(labels == label)[0]
-        idx_to_augment = random.sample(list(idx_label), int(len(idx_label)*aug_ratio), replace=False)
+        idx_to_augment = random.sample(list(idx_label), int(len(idx_label)*aug_ratio))
 
         for idx in idx_to_augment:
             image = images[idx]
@@ -43,7 +44,7 @@ def flip_augmentation(images, labels, aug_ratio = 0.2):
 
     #To not have images and its augmented versions concatenate
     final_images = np.concatenate((images, augmented_images), axis = 0)
-    final_labels = np.concatenate((labels, augmented_images), axis=0)
+    final_labels = np.concatenate((labels, augmented_labels), axis=0)
     ids = np.random.permutation(len(final_labels))
     final_images = final_images[ids]
     final_labels = final_labels[ids]
@@ -76,7 +77,7 @@ def rotate_dataset(images, labels, n_rotations = 1, ratio=0.2, rotate_angle=1):
             #Get the index where label is
             idx_label = np.where(labels == label)[0]
             #Choose randomly 20% of the data with y=label 
-            idx_to_augment = random.sample(list(idx_label), int(len(idx_label)*ratio), replace=False)
+            idx_to_augment = random.sample(list(idx_label), int(len(idx_label)*ratio))
 
             X_to_augment = images[idx_to_augment]
             
@@ -100,10 +101,50 @@ def rotate_dataset(images, labels, n_rotations = 1, ratio=0.2, rotate_angle=1):
 
     #To not have images and its augmented versions concatenate
     final_images = np.concatenate((images, augmented_images), axis = 0)
-    final_labels = np.concatenate((labels, augmented_images), axis=0)
+    final_labels = np.concatenate((labels, augmented_labels), axis=0)
     ids = np.random.permutation(len(final_labels))
     final_images = final_images[ids]
     final_labels = final_labels[ids]
 
 
     return final_images, final_labels
+
+
+class hog_feature_extractor:
+    def __init__(self, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3)):
+        self.orientations = orientations
+        self.pixels_per_cell = pixels_per_cell
+        self.cells_per_block = cells_per_block
+
+    def fit(self, images, labels):
+        pass
+    
+    def extract_features(self, images):
+        """
+        Method to extract the hog features from the images
+        inputs:
+            images: images to extract the features
+        output:
+            features: hog features
+        """
+        features = []
+        for image in images:
+            image = np.reshape(image, (3, 32, 32))
+            hog_features = []
+            for channel in range(3):
+                hog_features.append(hog(image[channel], orientations=self.orientations, pixels_per_cell=self.pixels_per_cell, cells_per_block=self.cells_per_block))
+            hog_features = np.ravel(hog_features)
+            features.append(hog_features)
+        return np.array(features)
+    
+    def fit_extract(self, images, labels):
+        """
+        Method to fit the hog extractor and extract the features
+        inputs:
+            images: images to extract the features
+            labels: labels of the images
+        output:
+            features: hog features
+        """
+        self.fit(images, labels)
+        return self.extract_features(images)
