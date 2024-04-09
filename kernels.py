@@ -15,7 +15,7 @@ class PolynomialKernel:
     def __call__(self, X, Y=None):
         if Y is None:
             Y = X
-        return (X1 @ X2.T + 1) ** self.p
+        return (X @ Y.T + 1) ** self.p
 
 class RBF:
     def __init__(self, sigma=1.):
