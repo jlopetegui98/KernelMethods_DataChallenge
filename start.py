@@ -117,16 +117,17 @@ if __name__ == "__main__":
     print("Extracting features...")
     if preprocessing_type == 'hog':
         print("Extracting HOG features...")
-        Xtr_features, _, _ = get_hog(Xtr, Xte, Xte)
+        Xtr_features, X_test_features, _ = get_hog(Xtr, Xte, Xte)
     elif preprocessing_type == 'sift':
         print("Extracting SIFT features...")
-        Xtr_features, _, _ = get_sift(Xtr_gray, X_test_gray, X_test_gray)
+        Xtr_features, X_test_features, _ = get_sift(Xtr_gray, X_test_gray, X_test_gray)
     elif preprocessing_type == 'hog+sift':
         print("Extracting HOG features...")
-        Xtr_hog, _, _ = get_hog(Xtr, Xte, Xte)
+        Xtr_hog, X_test_hog, _ = get_hog(Xtr, Xte, Xte)
         print("Extracting SIFT features...")
-        Xtr_sift, _, _ = get_sift(Xtr_gray, X_test_gray, X_test_gray)
+        Xtr_sift, X_test_sift, _ = get_sift(Xtr_gray, X_test_gray, X_test_gray)
         Xtr_features = np.concatenate((Xtr_hog, Xtr_sift), axis=1)
+        X_test_features = np.concatenate((X_test_hog, X_test_sift), axis=1)
     else:
         raise ValueError("Invalid preprocessing type")
     
