@@ -41,3 +41,7 @@ To run the `start.py` file, follow these steps:
 5. The application will start running and you will see the output in the terminal.
 
 Note: Make sure you have all the necessary dependencies installed before running the `start.py` file. You can install the dependencies by running `pip install -r requirements.txt` in the project directory.
+
+### Report:
+
+The report of the work done is available in the file: [Kernel_Methods___Report.pdf](https://github.com/jlopetegui98/KernelMethods_DataChallenge/blob/main/Kernel_Methods___Report.pdf)
